@@ -28,7 +28,9 @@ BEGIN
     END IF;
 
     -- Update their membership_plan if needed
-    UPDATE membership_plan
-    SET membership_id = v_membership_id
-    WHERE customer_id = NEW.customer_id;
+    IF v_membership_id IS NOT NULL THEN
+        UPDATE membership_plan
+        SET membership_id = v_membership_id
+        WHERE customer_id = NEW.customer_id;
+    END IF;
 END$$
