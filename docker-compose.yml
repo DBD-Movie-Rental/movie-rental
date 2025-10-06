@@ -1,0 +1,21 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: movie-rental-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: movie_rental
+      TZ: Europe/Copenhagen
+    ports:
+      - "3307:3306"
+    volumes:
+      # only the controller script goes into the init dir
+      - ./docker-init:/docker-entrypoint-initdb.d:ro
+      # your SQL files live outside and are referenced by init.sh
+      - ./MySQL_Scripts:/scripts:ro
+      # mysql config (nice name, no numbers)
+      - ./MySQL_Scripts/conf.d/movie-rental.cnf:/etc/mysql/conf.d/movie-rental.cnf:ro
+      # persistent data volume
+      - mysql-data:/var/lib/mysql
+volumes:
+  mysql-data:
