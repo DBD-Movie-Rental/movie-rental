@@ -110,6 +110,12 @@ FROM membership m
          INNER JOIN customer c ON c.email = 'bob@example.com'
 WHERE m.membership = 'BRONZE';
 
+INSERT INTO membership_plan (monthly_cost, starts_on, ends_on, membership_id, customer_id)
+SELECT 99.00, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR), m.membership_id, c.customer_id
+FROM membership m
+         INNER JOIN customer c ON c.email = 'mikkel@example.com'
+WHERE m.membership = 'BRONZE';
+
 -- ongoing rental: Alice rents Inception (DVD @ Nørreport, CPH) and The Matrix (VHS @ Bruuns, Aarhus) with promo
 CALL create_rental(
         (SELECT customer_id FROM customer WHERE email = 'alice@example.com'),
