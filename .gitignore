@@ -1,0 +1,184 @@
+# Movie Rental Database - .gitignore
+# Prevents common issues with macOS, Docker, MySQL, and development tools
+
+#################################
+# macOS - Extended Attributes
+#################################
+# Prevent quarantine and other extended attributes that cause Docker mounting issues
+**/.DS_Store
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.com.apple.timemachine.donotpresent
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+
+#################################
+# Docker
+#################################
+# Docker volumes and container data
+docker-data/
+mysql-data/
+**/mysql-data/
+data/
+volumes/
+
+# Docker logs
+*.log
+docker-compose.override.yml
+.env.local
+.env.*.local
+
+#################################
+# MySQL & Database
+#################################
+# MySQL Workbench files
+*.mwb.bak
+*.mwb~
+*.sql.bak
+*.sql~
+
+# Database dumps and backups (unless specifically needed)
+dumps/
+backups/
+*.dump
+*.backup
+*.bak
+
+# MySQL logs and data directories (if accidentally created locally)
+mysql-logs/
+binlog.*
+*.err
+*.pid
+*.sock
+
+# Query results and temporary files
+query_results/
+temp_queries/
+*.tmp.sql
+
+#################################
+# IDE & Editors
+#################################
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# JetBrains IDEs (DataGrip, etc.)
+.idea/
+*.iml
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+#################################
+# Development & Build Tools
+#################################
+# Node.js (if using any JS tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if using any Python scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.env
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+#################################
+# Documentation & Generated Files
+#################################
+# Generated documentation
+docs/generated/
+*.pdf.bak
+
+# Compiled documentation
+*.aux
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+
+#################################
+# System & Runtime
+#################################
+# Thumbnails
+Thumbs.db
+ehthumbs.db
+
+# Folder config files
+Desktop.ini
+
+# Recycle Bin (Windows)
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+#################################
+# Security & Credentials
+#################################
+# Environment files with sensitive data
+.env
+.env.production
+.env.staging
+*.env
+secrets/
+credentials/
+*.key
+*.pem
+*.crt
+
+# Database connection files
+database.ini
+db_config.ini
+connection_strings.txt
+
+#################################
+# Project Specific
+#################################
+# Custom backup folders
+my_backups/
+local_dumps/
+
+# Test databases (if created)
+test_movie_rental/
+movie_rental_test/
+
+# Performance test results
+performance_tests/
+benchmark_results/
