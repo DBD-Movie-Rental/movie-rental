@@ -211,3 +211,5 @@ WHERE inventory_item_id IN (
              JOIN customer c ON c.customer_id = r.customer_id
     WHERE c.email = 'alice@example.com'
 );
+
+SELECT * FROM rental;

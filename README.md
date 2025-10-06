@@ -93,37 +93,6 @@ EOF
 
 ---
 
-## ✅ Verify Setup
-
-### Docker Method
-```bash
-docker compose exec mysql mysql -u root -proot movie_rental -e "
-  SELECT COUNT(*) as total_customers FROM customer;
-  SELECT COUNT(*) as total_movies FROM movie;
-  SELECT COUNT(*) as total_rentals FROM rental;
-  SHOW TABLES;
-"
-```
-
-### Local MySQL Method
-```sql
-USE movie_rental;
-SELECT COUNT(*) as total_customers FROM customer;
-SELECT COUNT(*) as total_movies FROM movie;
-SELECT COUNT(*) as total_rentals FROM rental;
-SHOW TABLES;
-```
-
-**Expected Results:**
-- 4 customers
-- 6 movies  
-- 0 rentals (ready for you to add some!)
-- 19 tables (including views)
-
-If these return results, the system is fully operational.
-
----
-
 ## 💻 Using GUI Database Tools
 
 Once your database is running, you can connect using popular database management tools:
@@ -150,37 +119,6 @@ Once your database is running, you can connect using popular database management
    - Password: `root`
    - Database: `movie_rental`
 3. **Test Connection** and **Apply**
-
-### DBeaver (Free Alternative)
-
-1. **Download:** [DBeaver Community](https://dbeaver.io/download/)
-2. **New Database Connection → MySQL:**
-   - Server Host: `localhost`
-   - Port: `3307`
-   - Database: `movie_rental`
-   - Username: `root`
-   - Password: `root`
-3. **Test Connection** and **Finish**
-
-### phpMyAdmin (Web Interface)
-
-For a web-based interface, add this to your `docker-compose.yml`:
-
-```yaml
-  phpmyadmin:
-    image: phpmyadmin:latest
-    container_name: movie-rental-phpmyadmin
-    environment:
-      PMA_HOST: mysql
-      PMA_USER: root
-      PMA_PASSWORD: root
-    ports:
-      - "8080:80"
-    depends_on:
-      - mysql
-```
-
-Then access at: http://localhost:8080
 
 ### 📊 Sample Queries to Try
 
@@ -221,61 +159,6 @@ SHOW PROCEDURE STATUS WHERE Db = 'movie_rental';
 -- Check what events are scheduled
 SHOW EVENTS;
 ```
-
----
-
-## 🏗️ Database Structure
-
-The database includes:
-- **Tables:** Customers, movies, rentals, inventory, payments, and more
-- **Views:** Overdue rentals view for easy monitoring
-- **Stored Procedures:** Customer management, rental processing
-- **Functions:** Custom business logic calculations
-- **Triggers:** Automated updates and validations
-- **Events:** Scheduled tasks (e.g., marking overdue rentals)
-- **Indexes:** Optimized query performance
-
----
-
-## 🐛 Troubleshooting
-
-### Docker Issues
-
-**"Docker daemon not running"**
-```bash
-# Start Docker Desktop application
-open -a Docker
-# Wait for Docker to start, then retry
-```
-
-**"Port already in use"**
-```bash
-# Check what's using port 3307
-lsof -i :3307
-# Change port in docker-compose.yml if needed
-```
-
-**Container won't start**
-```bash
-# Check logs for errors
-docker compose logs mysql
-# Reset everything
-docker compose down -v
-docker compose up -d
-```
-
-### Local MySQL Issues
-
-**"Command not found: mysql"**
-```bash
-# Install MySQL via Homebrew (macOS)
-brew install mysql
-brew services start mysql
-```
-
-**"Access denied"**
-- Make sure you're using the correct username/password
-- Try running `mysql_secure_installation` to set up root password
 
 ---
 

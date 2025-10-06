@@ -4,6 +4,7 @@ USE movie_rental;
 -- ---------------------------------------------
 -- Automatic trigger checking membership upgrade
 -- ---------------------------------------------
+DROP TRIGGER IF EXISTS trg_check_membership_upgrade;
 DELIMITER $$
 CREATE TRIGGER trg_check_membership_upgrade
 AFTER INSERT ON rental
