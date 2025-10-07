@@ -17,8 +17,8 @@ A fully functional MySQL database for a movie rental system. The project include
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/DBD-Movie-Rental/movie-rental.git
-cd movie-rental
+git clone https://github.com/DBD-Movie-Rental/movie-rental-mysql.git
+cd movie-rental-mysql
 
 # 2. Start the database (this will automatically import all data)
 docker compose up -d
@@ -73,8 +73,8 @@ docker compose up -d
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/DBD-Movie-Rental/movie-rental.git
-cd movie-rental
+git clone https://github.com/DBD-Movie-Rental/movie-rental-mysql.git
+cd movie-rental-mysql
 
 # 2. Run the setup script (single command, one password prompt)
 mysql -u root -p << 'EOF'
