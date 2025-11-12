@@ -210,20 +210,21 @@ db.locations.createIndex({ "inventory.movieId": 1, "inventory.status": 1 });
 db.locations.createIndex({ "employees.email": 1 });
 
 // -----------------------------------------------------------------------------
-// rentals - embedded items, payments, fees, promo snapshot
+// rentals - embedded items, payments, fees, promo snapshot, locationId
 // -----------------------------------------------------------------------------
 db.createCollection("rentals", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["customerId","status","items","rentedAtDatetime"],
+      required: ["customerId","locationId","status","items","rentedAtDatetime"], // <- added locationId
       properties: {
-        customerId: { bsonType: "objectId" },
-        employeeId: { bsonType: ["objectId","null"] },
-        status: { enum: ["RESERVED","OPEN","RETURNED","LATE","CANCELLED"] },
-        rentedAtDatetime: { bsonType: "date" },
+        customerId:   { bsonType: "objectId" },
+        locationId:   { bsonType: "objectId" },   // ref locations._id
+        employeeId:   { bsonType: ["objectId","null"] },
+        status:       { enum: ["RESERVED","OPEN","RETURNED","LATE","CANCELLED"] },
+        rentedAtDatetime:   { bsonType: "date" },
         returnedAtDatetime: { bsonType: ["date","null"] },
-        dueAtDatetime: { bsonType: ["date","null"] },
+        dueAtDatetime:      { bsonType: ["date","null"] },
         reservedAtDatetime: { bsonType: ["date","null"] },
 
         items: {
@@ -233,8 +234,8 @@ db.createCollection("rentals", {
             bsonType: "object",
             required: ["inventoryItemId","movieId"],
             properties: {
-              inventoryItemId: { bsonType: "objectId" },
-              movieId: { bsonType: "objectId" }
+              inventoryItemId: { bsonType: "objectId" }, // points into locations.inventory._id
+              movieId:         { bsonType: "objectId" }
             }
           }
         },
@@ -245,10 +246,10 @@ db.createCollection("rentals", {
             bsonType: "object",
             required: ["_id","amountDkk","createdAt"],
             properties: {
-              _id: { bsonType: "objectId" },
-              amountDkk: { bsonType: "decimal" },
-              createdAt: { bsonType: "date" },
-              method: { bsonType: ["string","null"] }
+              _id:        { bsonType: "objectId" },
+              amountDkk:  { bsonType: "decimal" },
+              createdAt:  { bsonType: "date" },
+              method:     { bsonType: ["string","null"] }
             }
           }
         },
@@ -259,15 +260,15 @@ db.createCollection("rentals", {
             bsonType: "object",
             required: ["_id","feeType","amountDkk"],
             properties: {
-              _id: { bsonType: "objectId" },
-              feeType: { bsonType: "string" }, // ref feeTypes.code
-              amountDkk: { bsonType: "decimal" },
+              _id:        { bsonType: "objectId" },
+              feeType:    { bsonType: "string" },  // ref feeTypes.code
+              amountDkk:  { bsonType: "decimal" },
               snapshot: {
                 bsonType: ["object","null"],
                 properties: {
-                  calculation: { enum: ["flat","per_day","percentage","other"] },
-                  defaultAmountDkk: { bsonType: ["decimal","null"] },
-                  taxable: { bsonType: ["bool","null"] }
+                  calculation:       { enum: ["flat","per_day","percentage","other"] },
+                  defaultAmountDkk:  { bsonType: ["decimal","null"] },
+                  taxable:           { bsonType: ["bool","null"] }
                 }
               }
             }
@@ -277,11 +278,11 @@ db.createCollection("rentals", {
         promo: {
           bsonType: ["object","null"],
           properties: {
-            code: { bsonType: "string" }, // ref promoCodes.code
-            percentOff: { bsonType: ["decimal","null"] },
+            code:         { bsonType: "string" }, // ref promoCodes.code
+            percentOff:   { bsonType: ["decimal","null"] },
             amountOffDkk: { bsonType: ["decimal","null"] },
-            startsAt: { bsonType: ["date","null"] },
-            endsAt: { bsonType: ["date","null"] }
+            startsAt:     { bsonType: ["date","null"] },
+            endsAt:       { bsonType: ["date","null"] }
           }
         }
       }
@@ -289,113 +290,8 @@ db.createCollection("rentals", {
   }
 });
 
+// indexes (add a store-scoped one)
 db.rentals.createIndex({ customerId: 1, status: 1, rentedAtDatetime: -1 });
 db.rentals.createIndex({ status: 1 });
 db.rentals.createIndex({ "items.inventoryItemId": 1 });
-
-// -----------------------------------------------------------------------------
-// Minimal seed
-// -----------------------------------------------------------------------------
-
-// Seeds: membership types and fee types
-db.membershipTypes.insertMany([
-  { code: "GOLD", displayName: "Gold", defaultMonthlyCostDkk: NumberDecimal("149.00"), benefits: ["2 free rentals/mo","Priority holds"], isActive: true },
-  { code: "SILVER", displayName: "Silver", defaultMonthlyCostDkk: NumberDecimal("99.00"), benefits: ["1 free rental/mo"], isActive: true }
-]);
-
-db.feeTypes.insertMany([
-  { code: "LATE", displayName: "Late fee", calculation: "per_day", defaultAmountDkk: NumberDecimal("10.00"), taxable: true, isActive: true },
-  { code: "DAMAGED", displayName: "Damaged item fee", calculation: "flat", defaultAmountDkk: NumberDecimal("200.00"), taxable: false, isActive: true }
-]);
-
-db.promoCodes.insertOne({
-  code: "NOV25",
-  description: "November 25% off",
-  percentOff: NumberDecimal("25.00"),
-  amountOffDkk: null,
-  startsAt: new Date(),
-  endsAt: null,
-  isActive: true
-});
-
-// Movie with embedded review
-const movieId = ObjectId();
-db.movies.insertOne({
-  _id: movieId,
-  title: "Inception",
-  releaseYear: 2010,
-  runtimeMin: 148,
-  rating: 9,
-  genres: ["Sci-Fi","Thriller"],
-  summary: "A mind-bending heist within dreams.",
-  reviews: [{
-    _id: new ObjectId(),
-    customerId: null,
-    rating: 9,
-    body: "Still holds up.",
-    createdAt: new Date()
-  }]
-});
-
-// Location with one employee and two copies
-const locId = ObjectId();
-const inv1 = ObjectId();
-const inv2 = ObjectId();
-const emp1 = ObjectId();
-
-db.locations.insertOne({
-  _id: locId,
-  address: "Frederiksborggade 1",
-  city: "København",
-  employees: [
-    { _id: emp1, firstName: "Sara", lastName: "Holm", email: "sara@store.dk", isActive: true }
-  ],
-  inventory: [
-    { _id: inv1, movieId: movieId, format: "BLU-RAY", status: 1 },
-    { _id: inv2, movieId: movieId, format: "DVD",     status: 1 }
-  ]
-});
-
-// Customer with embedded membership and single address
-const custId = ObjectId();
-db.customers.insertOne({
-  _id: custId,
-  firstName: "Ava",
-  lastName: "Nguyen",
-  email: "ava@example.com",
-  phoneNumber: "+45 12 34 56 78",
-  createdAt: new Date(),
-  address: { address: "Vesterbrogade 10", city: "København", postCode: "1620" },
-  membership: {
-    membershipCode: "GOLD",
-    startsOn: new Date(),
-    endsOn: null,
-    snapshot: { monthlyCostDkk: NumberDecimal("149.00"), benefits: ["2 free rentals/mo","Priority holds"] }
-  },
-  recentRentals: []
-});
-
-// Rental with fee (lookup + snapshot) and promo snapshot
-const rentId = ObjectId();
-db.rentals.insertOne({
-  _id: rentId,
-  customerId: custId,
-  employeeId: emp1,
-  status: "OPEN",
-  rentedAtDatetime: new Date(),
-  dueAtDatetime: new Date(Date.now() + 7*24*3600*1000),
-  items: [{ inventoryItemId: inv1, movieId: movieId }],
-  payments: [{ _id: new ObjectId(), amountDkk: NumberDecimal("49.00"), createdAt: new Date(), method: "card" }],
-  fees: [{
-    _id: new ObjectId(),
-    feeType: "LATE",
-    amountDkk: NumberDecimal("20.00"),
-    snapshot: { calculation: "per_day", defaultAmountDkk: NumberDecimal("10.00"), taxable: true }
-  }],
-  promo: { code: "NOV25", percentOff: NumberDecimal("25.00"), amountOffDkk: null }
-});
-
-db.customers.updateOne(
-  { _id: custId },
-  { $push: { recentRentals: { $each: [{ rentalId: rentId, status: "OPEN", rentedAtDatetime: new Date() }], $slice: -5 } } }
-);
+db.rentals.createIndex({ locationId: 1, status: 1, rentedAtDatetime: -1 });
