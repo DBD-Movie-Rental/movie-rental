@@ -9,3 +9,4 @@ from . import inventory
 from . import lookups
 from . import movies
 from . import rentals
+from . import auth
