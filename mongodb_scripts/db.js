@@ -1,7 +1,7 @@
 use("movieRental");
 
 // -----------------------------------------------------------------------------
-// customers - addresses and recentRentals embedded
+// customers - embedded address, recentRentals, membership
 // -----------------------------------------------------------------------------
 db.createCollection("customers", {
   validator: {
@@ -14,16 +14,27 @@ db.createCollection("customers", {
         email: { bsonType: "string" },
         phoneNumber: { bsonType: ["string","null"] },
         createdAt: { bsonType: "date" },
-        addresses: {
-          bsonType: "array",
-          items: {
-            bsonType: "object",
-            required: ["address", "city", "postCode"],
-            properties: {
-              _id: { bsonType: "objectId" },
-              address: { bsonType: "string" },
-              city: { bsonType: "string" },
-              postCode: { bsonType: "string" }
+        address: {
+          bsonType: "object",
+          required: ["address", "city", "postCode"],
+          properties: {
+            address: { bsonType: "string" },
+            city: { bsonType: "string" },
+            postCode: { bsonType: "string" }
+          }
+        },
+        membership: {
+          bsonType: ["object","null"],
+          properties: {
+            membershipCode: { bsonType: "string" }, // ref membershipTypes.code
+            startsOn: { bsonType: ["date","null"] },
+            endsOn: { bsonType: ["date","null"] },
+            snapshot: {
+              bsonType: ["object","null"],
+              properties: {
+                monthlyCostDkk: { bsonType: ["decimal","null"] },
+                benefits: { bsonType: "array", items: { bsonType: "string" } }
+              }
             }
           }
         },
@@ -49,7 +60,7 @@ db.createCollection("customers", {
 db.customers.createIndex({ email: 1 }, { unique: true, collation: { locale: "en", strength: 2 } });
 
 // -----------------------------------------------------------------------------
-// promoCodes
+/* promoCodes (lookup) */
 // -----------------------------------------------------------------------------
 db.createCollection("promoCodes", {
   validator: {
@@ -70,6 +81,49 @@ db.createCollection("promoCodes", {
 });
 
 db.promoCodes.createIndex({ code: 1 }, { unique: true });
+
+// -----------------------------------------------------------------------------
+/* membershipTypes (lookup) */
+// -----------------------------------------------------------------------------
+db.createCollection("membershipTypes", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["code","defaultMonthlyCostDkk","isActive"],
+      properties: {
+        code: { enum: ["GOLD","SILVER","BRONZE"] }, // same in sql
+        displayName: { bsonType: ["string","null"] },
+        defaultMonthlyCostDkk: { bsonType: "decimal" },
+        benefits: { bsonType: "array", items: { bsonType: "string" } },
+        isActive: { bsonType: "bool" }
+      }
+    }
+  }
+});
+
+db.membershipTypes.createIndex({ code: 1 }, { unique: true });
+
+// -----------------------------------------------------------------------------
+/* feeTypes (lookup) */
+// -----------------------------------------------------------------------------
+db.createCollection("feeTypes", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["code","isActive"],
+      properties: {
+        code: { enum: ["LATE","DAMAGED","OTHER"] }, // same in sql
+        displayName: { bsonType: ["string","null"] },
+        calculation: { enum: ["flat","per_day","percentage","other"] },
+        defaultAmountDkk: { bsonType: ["decimal","null"] },
+        taxable: { bsonType: ["bool","null"] },
+        isActive: { bsonType: "bool" }
+      }
+    }
+  }
+});
+
+db.feeTypes.createIndex({ code: 1 }, { unique: true });
 
 // -----------------------------------------------------------------------------
 // movies - reviews embedded
@@ -156,8 +210,7 @@ db.locations.createIndex({ "inventory.movieId": 1, "inventory.status": 1 });
 db.locations.createIndex({ "employees.email": 1 });
 
 // -----------------------------------------------------------------------------
-// rentals - items, payments, fees, promo embedded
-// ??embed customer info??
+// rentals - embedded items, payments, fees, promo snapshot
 // -----------------------------------------------------------------------------
 db.createCollection("rentals", {
   validator: {
@@ -172,6 +225,7 @@ db.createCollection("rentals", {
         returnedAtDatetime: { bsonType: ["date","null"] },
         dueAtDatetime: { bsonType: ["date","null"] },
         reservedAtDatetime: { bsonType: ["date","null"] },
+
         items: {
           bsonType: "array",
           minItems: 1,
@@ -184,6 +238,7 @@ db.createCollection("rentals", {
             }
           }
         },
+
         payments: {
           bsonType: "array",
           items: {
@@ -197,6 +252,7 @@ db.createCollection("rentals", {
             }
           }
         },
+
         fees: {
           bsonType: "array",
           items: {
@@ -204,15 +260,24 @@ db.createCollection("rentals", {
             required: ["_id","feeType","amountDkk"],
             properties: {
               _id: { bsonType: "objectId" },
-              feeType: { enum: ["LATE","DAMAGED","OTHER"] },
-              amountDkk: { bsonType: "decimal" }
+              feeType: { bsonType: "string" }, // ref feeTypes.code
+              amountDkk: { bsonType: "decimal" },
+              snapshot: {
+                bsonType: ["object","null"],
+                properties: {
+                  calculation: { enum: ["flat","per_day","percentage","other"] },
+                  defaultAmountDkk: { bsonType: ["decimal","null"] },
+                  taxable: { bsonType: ["bool","null"] }
+                }
+              }
             }
           }
         },
+
         promo: {
           bsonType: ["object","null"],
           properties: {
-            code: { bsonType: "string" },
+            code: { bsonType: "string" }, // ref promoCodes.code
             percentOff: { bsonType: ["decimal","null"] },
             amountOffDkk: { bsonType: ["decimal","null"] },
             startsAt: { bsonType: ["date","null"] },
@@ -227,3 +292,110 @@ db.createCollection("rentals", {
 db.rentals.createIndex({ customerId: 1, status: 1, rentedAtDatetime: -1 });
 db.rentals.createIndex({ status: 1 });
 db.rentals.createIndex({ "items.inventoryItemId": 1 });
+
+// -----------------------------------------------------------------------------
+// Minimal seed
+// -----------------------------------------------------------------------------
+
+// Seeds: membership types and fee types
+db.membershipTypes.insertMany([
+  { code: "GOLD", displayName: "Gold", defaultMonthlyCostDkk: NumberDecimal("149.00"), benefits: ["2 free rentals/mo","Priority holds"], isActive: true },
+  { code: "SILVER", displayName: "Silver", defaultMonthlyCostDkk: NumberDecimal("99.00"), benefits: ["1 free rental/mo"], isActive: true }
+]);
+
+db.feeTypes.insertMany([
+  { code: "LATE", displayName: "Late fee", calculation: "per_day", defaultAmountDkk: NumberDecimal("10.00"), taxable: true, isActive: true },
+  { code: "DAMAGED", displayName: "Damaged item fee", calculation: "flat", defaultAmountDkk: NumberDecimal("200.00"), taxable: false, isActive: true }
+]);
+
+db.promoCodes.insertOne({
+  code: "NOV25",
+  description: "November 25% off",
+  percentOff: NumberDecimal("25.00"),
+  amountOffDkk: null,
+  startsAt: new Date(),
+  endsAt: null,
+  isActive: true
+});
+
+// Movie with embedded review
+const movieId = ObjectId();
+db.movies.insertOne({
+  _id: movieId,
+  title: "Inception",
+  releaseYear: 2010,
+  runtimeMin: 148,
+  rating: 9,
+  genres: ["Sci-Fi","Thriller"],
+  summary: "A mind-bending heist within dreams.",
+  reviews: [{
+    _id: new ObjectId(),
+    customerId: null,
+    rating: 9,
+    body: "Still holds up.",
+    createdAt: new Date()
+  }]
+});
+
+// Location with one employee and two copies
+const locId = ObjectId();
+const inv1 = ObjectId();
+const inv2 = ObjectId();
+const emp1 = ObjectId();
+
+db.locations.insertOne({
+  _id: locId,
+  address: "Frederiksborggade 1",
+  city: "København",
+  employees: [
+    { _id: emp1, firstName: "Sara", lastName: "Holm", email: "sara@store.dk", isActive: true }
+  ],
+  inventory: [
+    { _id: inv1, movieId: movieId, format: "BLU-RAY", status: 1 },
+    { _id: inv2, movieId: movieId, format: "DVD",     status: 1 }
+  ]
+});
+
+// Customer with embedded membership and single address
+const custId = ObjectId();
+db.customers.insertOne({
+  _id: custId,
+  firstName: "Ava",
+  lastName: "Nguyen",
+  email: "ava@example.com",
+  phoneNumber: "+45 12 34 56 78",
+  createdAt: new Date(),
+  address: { address: "Vesterbrogade 10", city: "København", postCode: "1620" },
+  membership: {
+    membershipCode: "GOLD",
+    startsOn: new Date(),
+    endsOn: null,
+    snapshot: { monthlyCostDkk: NumberDecimal("149.00"), benefits: ["2 free rentals/mo","Priority holds"] }
+  },
+  recentRentals: []
+});
+
+// Rental with fee (lookup + snapshot) and promo snapshot
+const rentId = ObjectId();
+db.rentals.insertOne({
+  _id: rentId,
+  customerId: custId,
+  employeeId: emp1,
+  status: "OPEN",
+  rentedAtDatetime: new Date(),
+  dueAtDatetime: new Date(Date.now() + 7*24*3600*1000),
+  items: [{ inventoryItemId: inv1, movieId: movieId }],
+  payments: [{ _id: new ObjectId(), amountDkk: NumberDecimal("49.00"), createdAt: new Date(), method: "card" }],
+  fees: [{
+    _id: new ObjectId(),
+    feeType: "LATE",
+    amountDkk: NumberDecimal("20.00"),
+    snapshot: { calculation: "per_day", defaultAmountDkk: NumberDecimal("10.00"), taxable: true }
+  }],
+  promo: { code: "NOV25", percentOff: NumberDecimal("25.00"), amountOffDkk: null }
+});
+
+db.customers.updateOne(
+  { _id: custId },
+  { $push: { recentRentals: { $each: [{ rentalId: rentId, status: "OPEN", rentedAtDatetime: new Date() }], $slice: -5 } } }
+);
